@@ -7,66 +7,61 @@ const WordStreamer = () => {
     const [displayedWords, setDisplayedWords] = useState([]);
     const [audioUrl, setAudioUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [audioInstance, setAudioInstance] = useState(null); 
+    const [audioInstance, setAudioInstance] = useState(null); // Track the current audio instance
 
     const handleInputChange = (event) => {
-        setInputText(event.target.value);
-        
-        setDisplayedWords(event.target.value.split(' ')); 
+        const newText = event.target.value;
+        setInputText(newText);
+        setDisplayedWords(newText.split(' ')); // Update displayed words as you type
     };
 
     const stopCurrentAudio = () => {
         if (audioInstance) {
-            audioInstance.pause(); 
-            audioInstance.currentTime = 0;
+            audioInstance.pause(); // Stop current audio
+            audioInstance.currentTime = 0; // Reset audio to the beginning
         }
     };
 
     const streamWords = async () => {
-        if (!inputText.trim()) return;
+        if (!inputText.trim()) return; // Do nothing if input is empty
 
         setIsLoading(true); // Start loading
-
-   
-        stopCurrentAudio();
+        stopCurrentAudio(); // Stop any currently playing audio
 
         try {
-            
+            // Request new audio for the updated input text
             const response = await axios.post("http://localhost:5008/api/speech", { text: inputText });
 
-            
+            // Append timestamp to prevent browser cache issues
             const newAudioUrl = `${response.data.audioUrl}?timestamp=${new Date().getTime()}`;
             setAudioUrl(newAudioUrl);
 
-           
+            // Create a new audio instance for the updated input
             const newAudioInstance = new Audio(newAudioUrl);
-            setAudioInstance(newAudioInstance); 
+            setAudioInstance(newAudioInstance); // Update the state with the new audio instance
 
- 
-            newAudioInstance.addEventListener('canplaythrough', () => {
-                newAudioInstance.play().catch((error) => {
-                    console.error("Playback failed:", error);
-                    alert("Audio playback failed. Please ensure your device allows audio playback.");
-                });
+            // Wait for the audio to load before playing it
+            newAudioInstance.addEventListener('canplaythrough', async () => {
+                await newAudioInstance.play(); // Play the new audio
+
+                // Stream the words one by one with a delay
+                const words = inputText.split(' ');
+                let newDisplayedWords = [];
+                for (const word of words) {
+                    newDisplayedWords = [...newDisplayedWords, word];
+                    setDisplayedWords([...newDisplayedWords]);
+                    await new Promise(resolve => setTimeout(resolve, 300)); // 300 ms delay
+                }
+                setIsLoading(false); // Stop loading after the words are displayed
             });
 
-           
-            const words = inputText.split(' ');
-            let newDisplayedWords = [];
-            for (const word of words) {
-                newDisplayedWords = [...newDisplayedWords, word];
-                setDisplayedWords([...newDisplayedWords]);
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-            setIsLoading(false); 
-
-        
+            // Clear the audio instance when it ends
             newAudioInstance.addEventListener('ended', () => {
-                setAudioInstance(null); 
+                setAudioInstance(null); // Clear the audio instance
             });
         } catch (error) {
             console.error("Error generating or playing audio:", error);
-            setIsLoading(false); r
+            setIsLoading(false); // Stop loading if there's an error
         }
     };
 
