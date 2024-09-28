@@ -17,7 +17,7 @@ const WordStreamer = () => {
 
         try {
             
-            const response = await axios.post('https://word-streaming-4955ijhnp-dhirajs-projects-11ea79ba.vercel.app/', { text: inputText });
+            const response = await axios.post('http://localhost:5007/api/speech', { text: inputText });
             setAudioUrl(response.data.audioUrl);
 
          
