@@ -35,6 +35,7 @@ const WordStreamer = () => {
             // Append timestamp to prevent browser cache issues
             const newAudioUrl = `${response.data.audioUrl}?timestamp=${new Date().getTime()}`;
             setAudioUrl(newAudioUrl);
+            console.log("Generated Audio URL:", newAudioUrl); // Debug log
 
             // Create a new audio instance for the updated input
             const newAudioInstance = new Audio(newAudioUrl);
@@ -42,17 +43,22 @@ const WordStreamer = () => {
 
             // Wait for the audio to load before playing it
             newAudioInstance.addEventListener('canplaythrough', async () => {
-                await newAudioInstance.play(); // Play the new audio
+                try {
+                    await newAudioInstance.play(); // Play the new audio
+                    console.log("Audio is playing"); // Debug log
 
-                // Stream the words one by one with a delay
-                const words = inputText.split(' ');
-                let newDisplayedWords = [];
-                for (const word of words) {
-                    newDisplayedWords = [...newDisplayedWords, word];
-                    setDisplayedWords([...newDisplayedWords]);
-                    await new Promise(resolve => setTimeout(resolve, 300)); // 300 ms delay
+                    // Stream the words one by one with a delay
+                    const words = inputText.split(' ');
+                    let newDisplayedWords = [];
+                    for (const word of words) {
+                        newDisplayedWords = [...newDisplayedWords, word];
+                        setDisplayedWords([...newDisplayedWords]);
+                        await new Promise(resolve => setTimeout(resolve, 300)); // 300 ms delay
+                    }
+                    setIsLoading(false); // Stop loading after the words are displayed
+                } catch (playError) {
+                    console.error("Audio play error:", playError); // Debug log
                 }
-                setIsLoading(false); // Stop loading after the words are displayed
             });
 
             // Clear the audio instance when it ends
