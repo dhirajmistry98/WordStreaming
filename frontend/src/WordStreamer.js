@@ -5,69 +5,54 @@ import './WordStreamer.css';
 const WordStreamer = () => {
     const [inputText, setInputText] = useState('');
     const [displayedWords, setDisplayedWords] = useState([]);
-    const [audioUrl, setAudioUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [audioInstance, setAudioInstance] = useState(null); // Track the current audio instance
+    const [audioInstance, setAudioInstance] = useState(null); 
 
     const handleInputChange = (event) => {
-        const newText = event.target.value;
-        setInputText(newText);
-        setDisplayedWords(newText.split(' ')); // Update displayed words as you type
-    };
-
-    const stopCurrentAudio = () => {
-        if (audioInstance) {
-            audioInstance.pause(); // Stop current audio
-            audioInstance.currentTime = 0; // Reset audio to the beginning
-        }
+        setInputText(event.target.value);
     };
 
     const streamWords = async () => {
-        if (!inputText.trim()) return; // Do nothing if input is empty
+        if (!inputText.trim()) return; 
 
         setIsLoading(true); // Start loading
-        stopCurrentAudio(); // Stop any currently playing audio
+        const words = inputText.split(' ');
+        setDisplayedWords(words); 
 
+        
         try {
-            // Request new audio for the updated input text
+            await navigator.mediaDevices.getUserMedia({ audio: true }); 
+
+            
+            if (audioInstance) {
+                audioInstance.pause();
+                audioInstance.currentTime = 0; 
+            }
+
+       
             const response = await axios.post("http://localhost:5008/api/speech", { text: inputText });
+            const newAudioUrl = response.data.audioUrl;
+            console.log("Generated Audio URL:", newAudioUrl); 
 
-            // Append timestamp to prevent browser cache issues
-            const newAudioUrl = `${response.data.audioUrl}?timestamp=${new Date().getTime()}`;
-            setAudioUrl(newAudioUrl);
-            console.log("Generated Audio URL:", newAudioUrl); // Debug log
-
-            // Create a new audio instance for the updated input
             const newAudioInstance = new Audio(newAudioUrl);
-            setAudioInstance(newAudioInstance); // Update the state with the new audio instance
+            setAudioInstance(newAudioInstance); 
 
-            // Wait for the audio to load before playing it
-            newAudioInstance.addEventListener('canplaythrough', async () => {
-                try {
-                    await newAudioInstance.play(); // Play the new audio
-                    console.log("Audio is playing"); // Debug log
-
-                    // Stream the words one by one with a delay
-                    const words = inputText.split(' ');
-                    let newDisplayedWords = [];
-                    for (const word of words) {
-                        newDisplayedWords = [...newDisplayedWords, word];
-                        setDisplayedWords([...newDisplayedWords]);
-                        await new Promise(resolve => setTimeout(resolve, 300)); // 300 ms delay
-                    }
-                    setIsLoading(false); // Stop loading after the words are displayed
-                } catch (playError) {
-                    console.error("Audio play error:", playError); // Debug log
-                }
+            
+            newAudioInstance.play().then(() => {
+                console.log("Audio is playing"); 
+            }).catch((error) => {
+                console.error("Audio play error:", error); 
             });
 
-            // Clear the audio instance when it ends
+           
             newAudioInstance.addEventListener('ended', () => {
-                setAudioInstance(null); // Clear the audio instance
+                setAudioInstance(null); 
             });
+
+            setIsLoading(false); 
         } catch (error) {
-            console.error("Error generating or playing audio:", error);
-            setIsLoading(false); // Stop loading if there's an error
+            console.error("Error accessing audio:", error);
+            setIsLoading(false); 
         }
     };
 
@@ -89,11 +74,6 @@ const WordStreamer = () => {
                     <span key={index}>{word} </span>
                 ))}
             </div>
-            {audioUrl && (
-                <div>
-                    <p>Audio URL: <a href={audioUrl} target="_blank" rel="noreferrer">Listen</a></p>
-                </div>
-            )}
         </div>
     );
 };
