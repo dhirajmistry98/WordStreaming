@@ -11,22 +11,23 @@ const WordStreamer = () => {
 
     const handleInputChange = (event) => {
         setInputText(event.target.value);
+        
         setDisplayedWords(event.target.value.split(' ')); 
     };
 
     const stopCurrentAudio = () => {
         if (audioInstance) {
             audioInstance.pause(); 
-            audioInstance.currentTime = 0; 
+            audioInstance.currentTime = 0;
         }
     };
 
     const streamWords = async () => {
         if (!inputText.trim()) return;
 
-        setIsLoading(true); 
+        setIsLoading(true); // Start loading
 
-  
+   
         stopCurrentAudio();
 
         try {
@@ -37,30 +38,35 @@ const WordStreamer = () => {
             const newAudioUrl = `${response.data.audioUrl}?timestamp=${new Date().getTime()}`;
             setAudioUrl(newAudioUrl);
 
+           
             const newAudioInstance = new Audio(newAudioUrl);
             setAudioInstance(newAudioInstance); 
-            
-            newAudioInstance.addEventListener('canplaythrough', async () => {
-                newAudioInstance.play(); 
 
-                
-                const words = inputText.split(' ');
-                let newDisplayedWords = [];
-                for (const word of words) {
-                    newDisplayedWords = [...newDisplayedWords, word];
-                    setDisplayedWords([...newDisplayedWords]);
-                    await new Promise(resolve => setTimeout(resolve, 300)); 
-                }
-                setIsLoading(false); 
+ 
+            newAudioInstance.addEventListener('canplaythrough', () => {
+                newAudioInstance.play().catch((error) => {
+                    console.error("Playback failed:", error);
+                    alert("Audio playback failed. Please ensure your device allows audio playback.");
+                });
             });
 
            
+            const words = inputText.split(' ');
+            let newDisplayedWords = [];
+            for (const word of words) {
+                newDisplayedWords = [...newDisplayedWords, word];
+                setDisplayedWords([...newDisplayedWords]);
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            setIsLoading(false); 
+
+        
             newAudioInstance.addEventListener('ended', () => {
                 setAudioInstance(null); 
             });
         } catch (error) {
             console.error("Error generating or playing audio:", error);
-            setIsLoading(false); 
+            setIsLoading(false); r
         }
     };
 
